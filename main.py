@@ -5,11 +5,11 @@ import os
 from keep_alive import keep_alive # Web sunucusunu başlatmak için ekledik
 
 # --- AYARLAR BÖLÜMÜ ---
-SUNUCU_ID = 123456789012345678  # Kendi sunucu ID'nizi girin
-MISAFIR_ROL_ID = 123456789012345678 # "Misafir" rolünün ID'si
-UYE_ROL_ID = 123456789012345678     # "Üye" rolünün ID'si
-KAYIT_KANAL_ID = 123456789012345678  # #kayıt kanalının ID'si
-LOG_KANAL_ID = 123456789012345678    # #kayıt-log kanalının ID'si
+SUNUCU_ID = 1421457543162757122  # Kendi sunucu ID'nizi girin
+MISAFIR_ROL_ID = 1421467222357966909 # "Misafir" rolünün ID'si
+UYE_ROL_ID = 1421467746855682219     # "Üye" rolünün ID'si
+KAYIT_KANAL_ID = 1421469878937845780  # #kayıt kanalının ID'si
+LOG_KANAL_ID = 1421548807451054190    # #kayıt-log kanalının ID'si
 # --------------------
 
 intents = discord.Intents.default()
@@ -70,4 +70,5 @@ try:
     token = os.environ['DISCORD_TOKEN']
     bot.run(token)
 except KeyError:
+
     print("HATA: DISCORD_TOKEN bulunamadı. Lütfen Render'da Environment Variables'a eklediğinizden emin olun.")
