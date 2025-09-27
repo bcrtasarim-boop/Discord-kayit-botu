@@ -72,3 +72,4 @@ try:
 except KeyError:
 
     print("HATA: DISCORD_TOKEN bulunamadı. Lütfen Render'da Environment Variables'a eklediğinizden emin olun.")
+
