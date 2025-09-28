@@ -51,13 +51,13 @@ async def on_member_join(member):
 # Slash komutunun tanımı (tek string parametre)
 @bot.tree.command(
     name="kayıt",
-    description="Sunucumuza kayıt olmak için /kayıt yazdıktan sonra OyuniçiNick-İsim-Yaş şeklinde yazıp, işlemi tamamlayın.",
+    description="Sunucumuza kayıt olmak için /kayıt yazdıktan sonra nick_isim_yas şeklinde yazıp, işlemi tamamlayın.",
     guild=discord.Object(id=SUNUCU_ID)
 )
 @app_commands.describe(
-    bilgiler="Kayıt bilgilerinizi OyuniçiNick-İsim-Yaş şeklinde yazın."
+    nick_isim_yas="Kayıt bilgilerinizi Nick-İsim-Yaş şeklinde yazın."
 )
-async def kayit(interaction: discord.Interaction, bilgiler: str):
+async def kayit(interaction: discord.Interaction, nick_isim_yas: str):
     if interaction.channel.id != KAYIT_KANAL_ID:
         await interaction.response.send_message(
             f"Bu komutu sadece <#{KAYIT_KANAL_ID}> kanalında kullanabilirsin.", 
@@ -69,7 +69,7 @@ async def kayit(interaction: discord.Interaction, bilgiler: str):
 
     # Bilgileri tire ile ayır
     try:
-        oyun_nicki, isim, yas = bilgiler.split("-")
+        oyun_nicki, isim, yas = nick_isim_yas.split("-")
         yas = int(yas)  # yaş integer olarak kullanılacak
     except ValueError:
         await interaction.followup.send(
