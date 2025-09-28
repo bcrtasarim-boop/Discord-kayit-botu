@@ -67,10 +67,10 @@ async def kayit(interaction: discord.Interaction, nick_isim_yas: str):
     
     await interaction.response.defer(ephemeral=True)
 
-    # Bilgileri tire ile ayır
+    # Log için bilgileri parçala, nickname tüm parametre olacak
     try:
         oyun_nicki, isim, yas = nick_isim_yas.split("-")
-        yas = int(yas)  # yaş integer olarak kullanılacak
+        yas = int(yas)
     except ValueError:
         await interaction.followup.send(
             "Bilgiler hatalı! Lütfen `/kayıt Nick-İsim-Yaş` şeklinde yazın."
@@ -84,9 +84,11 @@ async def kayit(interaction: discord.Interaction, nick_isim_yas: str):
     uye_rolu = guild.get_role(UYE_ROL_ID)
 
     try:
+        # Misafir rolünü kaldır, üye rolü ekle
         await kullanici.remove_roles(misafir_rolu)
         await kullanici.add_roles(uye_rolu)
-        await kullanici.edit(nick=oyun_nicki)
+        # Nickname olarak tüm parametreyi kullan
+        await kullanici.edit(nick=nick_isim_yas)
 
         if log_kanali:
             embed = discord.Embed(title="✅ Yeni Kayıt Başarılı", color=discord.Color.green())
