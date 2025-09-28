@@ -45,7 +45,6 @@ async def on_member_join(member):
         except Exception as e:
             print(f"on_member_join hatası: {e}")
 
-# --- YENİLENEN KAYIT KOMUTU ---
 @bot.tree.command(name="kayıt", description="Kayıt olmak için bilgilerinizi boşluk bırakarak yazın (Örn: Nick İsim Yaş).")
 @app_commands.describe(
     bilgiler="Örnek: Raeburn Uğur 18"
@@ -57,29 +56,26 @@ async def kayit(interaction: discord.Interaction, bilgiler: str):
     
     await interaction.response.defer(ephemeral=True)
     
-    # Verilen bilgileri boşluklara göre ayır
     parts = bilgiler.split()
 
-    # Yeterli bilgi var mı diye kontrol et
     if len(parts) < 3:
         await interaction.followup.send("Eksik bilgi girdiniz! Lütfen `Nick İsim Yaş` formatında tekrar deneyin. Örnek: `/kayıt Raeburn Uğur 18`")
         return
     
-    # Bilgileri değişkenlere ata
     oyun_nicki = parts[0]
     isim = parts[1]
     yas_str = parts[2]
 
-    # Yaşın sayı olup olmadığını kontrol et
     if not yas_str.isdigit():
         await interaction.followup.send("Yaş olarak geçerli bir sayı girmediniz! Lütfen `Nick İsim Yaş` formatında tekrar deneyin. Örnek: `/kayıt Raeburn Uğur 18`")
         return
     
+    if len(oyun_nicki) > 32:
+        await interaction.followup.send("Oyun nicki çok uzun! Discord, 32 karakterden uzun takma adlara izin vermiyor.")
+        return
+        
     yas = int(yas_str)
     
-    # Yeni takma adı oluştur
-    yeni_takma_ad = f"{oyun_nicki}-{isim}-{yas}"
-
     kullanici = interaction.user
     guild = interaction.guild
     log_kanali = bot.get_channel(LOG_KANAL_ID)
@@ -89,7 +85,7 @@ async def kayit(interaction: discord.Interaction, bilgiler: str):
     try:
         await kullanici.remove_roles(misafir_rolu)
         await kullanici.add_roles(uye_rolu)
-        await kullanici.edit(nick=yeni_takma_ad)
+        await kullanici.edit(nick=oyun_nicki)
 
         if log_kanali:
             embed = discord.Embed(title="✅ Yeni Kayıt Başarılı", color=discord.Color.green())
@@ -98,7 +94,6 @@ async def kayit(interaction: discord.Interaction, bilgiler: str):
             embed.add_field(name="Oyun Nicki", value=f"{oyun_nicki}", inline=True)
             embed.add_field(name="İsim", value=f"{isim}", inline=True)
             embed.add_field(name="Yaş", value=f"{yas}", inline=True)
-            embed.add_field(name="Ayarlanan Takma Ad", value=yeni_takma_ad, inline=False)
             embed.set_footer(text=f"Kullanıcı ID: {kullanici.id}")
             await log_kanali.send(embed=embed)
         
@@ -108,10 +103,8 @@ async def kayit(interaction: discord.Interaction, bilgiler: str):
         print(f"Kayıt komutu sırasında bir hata oluştu: {e}")
         await interaction.followup.send("Kayıt sırasında bir hata oluştu. Lütfen bir yetkili ile iletişime geç.")
 
-# Web sunucusunu (keep_alive) çalıştır
 keep_alive()
 
-# Token'ı ortam değişkenlerinden (Secrets) güvenli bir şekilde al
 try:
     token = os.environ['DISCORD_TOKEN']
     bot.run(token)
