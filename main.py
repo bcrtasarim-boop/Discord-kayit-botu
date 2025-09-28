@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import os
-from keep_alive import keep_alive # Web sunucusunu başlatmak için
+from keep_alive import keep_alive  # Web sunucusunu başlatmak için
 
 # --- AYARLAR BÖLÜMÜ ---
 SUNUCU_ID = 1421457543162757122
@@ -23,7 +23,6 @@ async def on_ready():
     print(f'{bot.user} olarak Discord\'a başarıyla bağlandım.')
     print("Kayıt botu aktif ve komutları bekliyor...")
     try:
-        # Slash komutlarını belirtilen sunucuyla senkronize et
         synced = await bot.tree.sync(guild=discord.Object(id=SUNUCU_ID))
         if synced:
             print(f"{len(synced)} adet komut senkronize edildi: {synced[0].name}")
@@ -48,7 +47,7 @@ async def on_member_join(member):
         except Exception as e:
             print(f"on_member_join hatası: {e}")
 
-# Slash komutunun tanımı (tek string parametre)
+# Slash komutu
 @bot.tree.command(
     name="kayıt",
     description="Kayıt için /kayıt Nick-İsim-Yaş yazıp işlemi tamamlayın. Örnek: /kayıt Slaine-Utku-31",
@@ -60,14 +59,14 @@ async def on_member_join(member):
 async def kayit(interaction: discord.Interaction, nick_isim_yas: str):
     if interaction.channel.id != KAYIT_KANAL_ID:
         await interaction.response.send_message(
-            f"Bu komutu sadece <#{KAYIT_KANAL_ID}> kanalında kullanabilirsin.", 
+            f"Bu komutu sadece <#{KAYIT_KANAL_ID}> kanalında kullanabilirsin.",
             ephemeral=True
         )
         return
-    
+
     await interaction.response.defer(ephemeral=True)
 
-    # Log için bilgileri parçala, nickname tüm parametre olacak
+    # Bilgileri parçala (log için)
     try:
         oyun_nicki, isim, yas = nick_isim_yas.split("-")
         yas = int(yas)
@@ -90,34 +89,32 @@ async def kayit(interaction: discord.Interaction, nick_isim_yas: str):
         # Nickname olarak tüm parametreyi kullan
         await kullanici.edit(nick=nick_isim_yas)
 
+        # Embed log gönderimi
         if log_kanali:
+            avatar_url = kullanici.avatar.url if kullanici.avatar else None
             embed = discord.Embed(title="✅ Yeni Kayıt Başarılı", color=discord.Color.green())
-            embed.set_author(
-                name=f"{kullanici.name}",
-                icon_url=kullanici.avatar.url if kullanici.avatar else discord.Embed.Empty
-            )
+            embed.set_author(name=f"{kullanici.name}", icon_url=avatar_url)
             embed.add_field(name="Kayıt Olan Kişi", value=kullanici.mention, inline=False)
             embed.add_field(name="Oyun Nicki", value=oyun_nicki, inline=True)
             embed.add_field(name="İsim", value=isim, inline=True)
             embed.add_field(name="Yaş", value=yas, inline=True)
             embed.set_footer(text=f"Kullanıcı ID: {kullanici.id}")
-            await log_kanali.send(embed=embed)
+            try:
+                await log_kanali.send(embed=embed)
+            except Exception as e:
+                print(f"Log gönderilemedi: {e}")
 
         await interaction.followup.send(f"Harika, kaydın başarıyla tamamlandı. Sunucumuza hoş geldin!")
 
     except Exception as e:
-        print(f"Kayıt komutu sırasında bir hata oluştu: {e}")
-        await interaction.followup.send("Kayıt sırasında bir hata oluştu. Lütfen bir yetkili ile iletişime geç.")
+        print(f"Kayıt işlemi sırasında hata: {e}")
 
-# Web sunucusunu (keep_alive) çalıştır
+# Web sunucusunu çalıştır
 keep_alive()
 
-# Token'ı ortam değişkenlerinden (Secrets) güvenli bir şekilde al
+# Token'ı güvenli şekilde al
 try:
     token = os.environ['DISCORD_TOKEN']
     bot.run(token)
 except KeyError:
-    print("HATA: DISCORD_TOKEN bulunamadı. Lütfen hosting platformunuzun Secrets/Environment Variables bölümüne eklediğinizden emin olun.")
-
-
-
+    print("HATA: DISCORD_TOKEN bulunamadı. Lütfen ortam değişkenlerini kontrol edin.")
