@@ -4,49 +4,50 @@ from discord.ext import commands
 import os
 from keep_alive import keep_alive  # Web sunucusunu başlatmak için
 
-# --- AYARLAR ---
+# --- AYARLAR BÖLÜMÜ ---
 SUNUCU_ID = 1421457543162757122
 MISAFIR_ROL_ID = 1421467222357966909
 UYE_ROL_ID = 1421467746855682219
 KAYIT_KANAL_ID = 1421469878937845780
 LOG_KANAL_ID = 1421548807451054190
-# ----------------
+# --------------------
 
+# Botun çalışması için gerekli Discord ayarları
 intents = discord.Intents.default()
 intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-
+# Bot çalıştığında terminalde bir mesaj gösterecek
 @bot.event
 async def on_ready():
-    print(f"{bot.user} olarak Discord'a bağlandım.")
+    print(f'{bot.user} olarak Discord\'a başarıyla bağlandım.')
     print("Kayıt botu aktif ve komutları bekliyor...")
     try:
         synced = await bot.tree.sync(guild=discord.Object(id=SUNUCU_ID))
-        print(f"{len(synced)} komut senkronize edildi.") if synced else print("Komut bulunamadı.")
+        if synced:
+            print(f"{len(synced)} adet komut senkronize edildi: {synced[0].name}")
+        else:
+            print("Sunucuya özel komut bulunamadı veya senkronize edilemedi.")
     except Exception as e:
         print(f"Komut senkronizasyon hatası: {e}")
 
-
+# Sunucuya yeni bir üye katıldığında çalışacak olay
 @bot.event
 async def on_member_join(member):
-    if member.guild.id != SUNUCU_ID:
-        return
+    if member.guild.id == SUNUCU_ID:
+        kayit_kanali = bot.get_channel(KAYIT_KANAL_ID)
+        misafir_rolu = member.guild.get_role(MISAFIR_ROL_ID)
+        try:
+            if misafir_rolu:
+                await member.add_roles(misafir_rolu)
+            if kayit_kanali:
+                await kayit_kanali.send(
+                    f"Hoş geldin {member.mention}! Lütfen sunucumuza tam erişim için `/kayıt` komutunu kullanarak kayıt ol."
+                )
+        except Exception as e:
+            print(f"on_member_join hatası: {e}")
 
-    kayit_kanali = bot.get_channel(KAYIT_KANAL_ID)
-    misafir_rolu = member.guild.get_role(MISAFIR_ROL_ID)
-
-    try:
-        if misafir_rolu:
-            await member.add_roles(misafir_rolu)
-        if kayit_kanali:
-            await kayit_kanali.send(
-                f"Hoş geldin {member.mention}! `/kayıt` komutunu kullanarak kayıt olabilirsin."
-            )
-    except Exception as e:
-        print(f"on_member_join hatası: {e}")
-
-
+# Slash komutu
 @bot.tree.command(
     name="kayıt",
     description="Kayıt için /kayıt Nick-İsim-Yaş yazıp işlemi tamamlayın. Örnek: /kayıt Slaine-Utku-31",
@@ -65,7 +66,7 @@ async def kayit(interaction: discord.Interaction, nick_isim_yas: str):
 
     await interaction.response.defer(ephemeral=True)
 
-    # Log için bilgileri parçala
+    # Bilgileri parçala (log için)
     try:
         oyun_nicki, isim, yas = nick_isim_yas.split("-")
         yas = int(yas)
@@ -82,22 +83,17 @@ async def kayit(interaction: discord.Interaction, nick_isim_yas: str):
     uye_rolu = guild.get_role(UYE_ROL_ID)
 
     try:
+        # Misafir rolünü kaldır, üye rolü ekle
         await kullanici.remove_roles(misafir_rolu)
         await kullanici.add_roles(uye_rolu)
+        # Nickname olarak tüm parametreyi kullan
         await kullanici.edit(nick=nick_isim_yas)
 
-        # Kullanıcıya mesajı önce gönder
-        await interaction.followup.send(
-            f"Harika, kaydın başarıyla tamamlandı. Sunucumuza hoş geldin!"
-        )
-
-        # Log kanalı varsa embed gönder
+        # Embed log gönderimi
         if log_kanali:
+            avatar_url = kullanici.avatar.url if kullanici.avatar else None
             embed = discord.Embed(title="✅ Yeni Kayıt Başarılı", color=discord.Color.green())
-            embed.set_author(
-                name=kullanici.name,
-                icon_url=kullanici.avatar.url if kullanici.avatar else discord.Embed.Empty
-            )
+            embed.set_author(name=f"{kullanici.name}", icon_url=avatar_url)
             embed.add_field(name="Kayıt Olan Kişi", value=kullanici.mention, inline=False)
             embed.add_field(name="Oyun Nicki", value=oyun_nicki, inline=True)
             embed.add_field(name="İsim", value=isim, inline=True)
@@ -108,22 +104,17 @@ async def kayit(interaction: discord.Interaction, nick_isim_yas: str):
             except Exception as e:
                 print(f"Log gönderilemedi: {e}")
 
-    except Exception as e:
-        print(f"Kayıt sırasında hata oluştu: {e}")
-        try:
-            await interaction.followup.send(
-                "Kayıt sırasında bir hata oluştu. Lütfen bir yetkili ile iletişime geç."
-            )
-        except:
-            pass
+        await interaction.followup.send(f"Harika, kaydın başarıyla tamamlandı. Sunucumuza hoş geldin!")
 
+    except Exception as e:
+        print(f"Kayıt işlemi sırasında hata: {e}")
 
 # Web sunucusunu çalıştır
 keep_alive()
 
-# Token ile başlat
+# Token'ı güvenli şekilde al
 try:
     token = os.environ['DISCORD_TOKEN']
     bot.run(token)
 except KeyError:
-    print("HATA: DISCORD_TOKEN bulunamadı.")
+    print("HATA: DISCORD_TOKEN bulunamadı. Lütfen ortam değişkenlerini kontrol edin.")
