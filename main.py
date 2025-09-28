@@ -25,25 +25,22 @@ async def on_ready():
     try:
         # Slash komutlarını belirtilen sunucuyla senkronize et
         synced = await bot.tree.sync(guild=discord.Object(id=SUNUCU_ID))
-        print(f"{len(synced)} adet komut senkronize edildi: {synced[0].name}")
+        if synced:
+            print(f"{len(synced)} adet komut senkronize edildi: {synced[0].name}")
+        else:
+            print("Sunucuya özel komut bulunamadı veya senkronize edilemedi.")
     except Exception as e:
         print(f"Komut senkronizasyon hatası: {e}")
 
 # Sunucuya yeni bir üye katıldığında çalışacak olay
 @bot.event
 async def on_member_join(member):
-    # Eğer üye doğru sunucuya katıldıysa devam et
     if member.guild.id == SUNUCU_ID:
-        # Gerekli rol ve kanalları ID'lerinden bul
         kayit_kanali = bot.get_channel(KAYIT_KANAL_ID)
         misafir_rolu = member.guild.get_role(MISAFIR_ROL_ID)
-
         try:
-            # Yeni üyeye "Misafir" rolünü ver
             if misafir_rolu:
                 await member.add_roles(misafir_rolu)
-
-            # Kayıt kanalına hoş geldin mesajı gönder
             if kayit_kanali:
                 await kayit_kanali.send(
                     f"Hoş geldin {member.mention}! Lütfen sunucumuza tam erişim için `/kayıt` komutunu kullanarak kayıt ol."
@@ -59,15 +56,12 @@ async def on_member_join(member):
     yas="Yaşınız (sadece yetkililer görebilir)"
 )
 async def kayit(interaction: discord.Interaction, oyun_nicki: str, isim: str, yas: int):
-    # Komutun doğru kanalda kullanılıp kullanılmadığını kontrol et
     if interaction.channel.id != KAYIT_KANAL_ID:
         await interaction.response.send_message(f"Bu komutu sadece <#{KAYIT_KANAL_ID}> kanalında kullanabilirsin.", ephemeral=True)
         return
-
-    # Discord'a "Komutunu aldım, düşünüyorum..." mesajını anında gönderir.
-    # ephemeral=True sayesinde bu "düşünüyor..." mesajını sadece komutu kullanan kişi görür.
+    
     await interaction.response.defer(ephemeral=True)
-
+    
     kullanici = interaction.user
     guild = interaction.guild
     log_kanali = bot.get_channel(LOG_KANAL_ID)
@@ -75,14 +69,10 @@ async def kayit(interaction: discord.Interaction, oyun_nicki: str, isim: str, ya
     uye_rolu = guild.get_role(UYE_ROL_ID)
 
     try:
-        # Rolleri değiştir: Misafir rolünü al, Üye rolünü ver
         await kullanici.remove_roles(misafir_rolu)
         await kullanici.add_roles(uye_rolu)
-
-        # Kullanıcının sunucudaki takma adını değiştir
         await kullanici.edit(nick=oyun_nicki)
 
-        # Log kanalına bilgilendirme mesajı gönder
         if log_kanali:
             embed = discord.Embed(title="✅ Yeni Kayıt Başarılı", color=discord.Color.green())
             embed.set_author(name=f"{kullanici.name}", icon_url=kullanici.avatar.url if kullanici.avatar else discord.Embed.Empty)
@@ -92,21 +82,19 @@ async def kayit(interaction: discord.Interaction, oyun_nicki: str, isim: str, ya
             embed.add_field(name="Yaş", value=yas, inline=True)
             embed.set_footer(text=f"Kullanıcı ID: {kullanici.id}")
             await log_kanali.send(embed=embed)
-
-        # "response.send_message" yerine "followup.send" kullanıyoruz çünkü komutu en başta "defer" ile yanıtladık.
+        
         await interaction.followup.send(f"Harika, kaydın başarıyla tamamlandı. Sunucumuza hoş geldin!")
 
     except Exception as e:
         print(f"Kayıt komutu sırasında bir hata oluştu: {e}")
-        # Hata durumunda da "followup.send" kullanıyoruz.
         await interaction.followup.send("Kayıt sırasında bir hata oluştu. Lütfen bir yetkili ile iletişime geç.")
 
 # Web sunucusunu (keep_alive) çalıştır
 keep_alive()
 
-# Token'ı ortam değişkenlerinden güvenli bir şekilde al
+# Token'ı ortam değişkenlerinden (Secrets) güvenli bir şekilde al
 try:
     token = os.environ['DISCORD_TOKEN']
     bot.run(token)
 except KeyError:
-    print("HATA: DISCORD_TOKEN bulunamadı. Lütfen Render'da Environment Variables'a eklediğinizden emin olun.")
+    print("HATA: DISCORD_TOKEN bulunamadı. Lütfen hosting platformunuzun Secrets/Environment Variables bölümüne eklediğinizden emin olun.")
