@@ -17,13 +17,11 @@ intents = discord.Intents.default()
 intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Bot çalıştığında terminalde bir mesaj gösterecek
 @bot.event
 async def on_ready():
     print(f'{bot.user} olarak Discord\'a başarıyla bağlandım.')
     print("Kayıt botu aktif ve komutları bekliyor...")
     try:
-        # Slash komutlarını belirtilen sunucuyla senkronize et
         synced = await bot.tree.sync(guild=discord.Object(id=SUNUCU_ID))
         if synced:
             print(f"{len(synced)} adet komut senkronize edildi: {synced[0].name}")
@@ -32,7 +30,6 @@ async def on_ready():
     except Exception as e:
         print(f"Komut senkronizasyon hatası: {e}")
 
-# Sunucuya yeni bir üye katıldığında çalışacak olay
 @bot.event
 async def on_member_join(member):
     if member.guild.id == SUNUCU_ID:
@@ -48,20 +45,41 @@ async def on_member_join(member):
         except Exception as e:
             print(f"on_member_join hatası: {e}")
 
-# Slash komutunun tanımı
-@bot.tree.command(name="kayıt", description="Sunucuya kayıt olmak için bilgilerinizi girin.", guild=discord.Object(id=SUNUCU_ID))
+# --- YENİLENEN KAYIT KOMUTU ---
+@bot.tree.command(name="kayıt", description="Kayıt olmak için bilgilerinizi boşluk bırakarak yazın (Örn: Nick İsim Yaş).")
 @app_commands.describe(
-    oyun_nicki="Oyun içindeki isminiz (Bu isim sunucu takma adınız olacak)",
-    isim="Gerçek isminiz (sadece yetkililer görebilir)",
-    yas="Yaşınız (sadece yetkililer görebilir)"
+    bilgiler="Örnek: Raeburn Uğur 18"
 )
-async def kayit(interaction: discord.Interaction, oyun_nicki: str, isim: str, yas: int):
+async def kayit(interaction: discord.Interaction, bilgiler: str):
     if interaction.channel.id != KAYIT_KANAL_ID:
         await interaction.response.send_message(f"Bu komutu sadece <#{KAYIT_KANAL_ID}> kanalında kullanabilirsin.", ephemeral=True)
         return
     
     await interaction.response.defer(ephemeral=True)
     
+    # Verilen bilgileri boşluklara göre ayır
+    parts = bilgiler.split()
+
+    # Yeterli bilgi var mı diye kontrol et
+    if len(parts) < 3:
+        await interaction.followup.send("Eksik bilgi girdiniz! Lütfen `Nick İsim Yaş` formatında tekrar deneyin. Örnek: `/kayıt Raeburn Uğur 18`")
+        return
+    
+    # Bilgileri değişkenlere ata
+    oyun_nicki = parts[0]
+    isim = parts[1]
+    yas_str = parts[2]
+
+    # Yaşın sayı olup olmadığını kontrol et
+    if not yas_str.isdigit():
+        await interaction.followup.send("Yaş olarak geçerli bir sayı girmediniz! Lütfen `Nick İsim Yaş` formatında tekrar deneyin. Örnek: `/kayıt Raeburn Uğur 18`")
+        return
+    
+    yas = int(yas_str)
+    
+    # Yeni takma adı oluştur
+    yeni_takma_ad = f"{oyun_nicki}-{isim}-{yas}"
+
     kullanici = interaction.user
     guild = interaction.guild
     log_kanali = bot.get_channel(LOG_KANAL_ID)
@@ -71,18 +89,16 @@ async def kayit(interaction: discord.Interaction, oyun_nicki: str, isim: str, ya
     try:
         await kullanici.remove_roles(misafir_rolu)
         await kullanici.add_roles(uye_rolu)
-        await kullanici.edit(nick=oyun_nicki)
+        await kullanici.edit(nick=yeni_takma_ad)
 
         if log_kanali:
             embed = discord.Embed(title="✅ Yeni Kayıt Başarılı", color=discord.Color.green())
             embed.set_author(name=f"{kullanici.name}", icon_url=kullanici.avatar.url if kullanici.avatar else discord.Embed.Empty)
             embed.add_field(name="Kayıt Olan Kişi", value=kullanici.mention, inline=False)
-            
-            # Değişkenlerin metin (string) olduğundan emin olmak için f-string kullanıyoruz.
             embed.add_field(name="Oyun Nicki", value=f"{oyun_nicki}", inline=True)
             embed.add_field(name="İsim", value=f"{isim}", inline=True)
             embed.add_field(name="Yaş", value=f"{yas}", inline=True)
-            
+            embed.add_field(name="Ayarlanan Takma Ad", value=yeni_takma_ad, inline=False)
             embed.set_footer(text=f"Kullanıcı ID: {kullanici.id}")
             await log_kanali.send(embed=embed)
         
