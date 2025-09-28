@@ -52,10 +52,9 @@ async def on_member_join(member):
 @bot.tree.command(name="kayıt", description="Sunucuya kayıt olmak için bilgilerinizi girin.", guild=discord.Object(id=SUNUCU_ID))
 @app_commands.describe(
     oyun_nicki="Oyun içindeki isminiz (Bu isim sunucu takma adınız olacak)",
-    isim="Gerçek isminiz (sadece yetkililer görebilir)",
-    yas="Yaşınız (sadece yetkililer görebilir)"
+    isim="Gerçek isminiz (sadece yetkililer görebilir)"
 )
-async def kayit(interaction: discord.Interaction, oyun_nicki: str, isim: str, yas: int):
+async def kayit(interaction: discord.Interaction, oyun_nicki: str, isim: str):
     if interaction.channel.id != KAYIT_KANAL_ID:
         await interaction.response.send_message(f"Bu komutu sadece <#{KAYIT_KANAL_ID}> kanalında kullanabilirsin.", ephemeral=True)
         return
@@ -78,10 +77,9 @@ async def kayit(interaction: discord.Interaction, oyun_nicki: str, isim: str, ya
             embed.set_author(name=f"{kullanici.name}", icon_url=kullanici.avatar.url if kullanici.avatar else discord.Embed.Empty)
             embed.add_field(name="Kayıt Olan Kişi", value=kullanici.mention, inline=False)
             
-            # Değişkenlerin metin (string) olduğundan emin olmak için f-string kullanıyoruz.
+            # Yaş alanını kaldırdık
             embed.add_field(name="Oyun Nicki", value=f"{oyun_nicki}", inline=True)
             embed.add_field(name="İsim", value=f"{isim}", inline=True)
-            embed.add_field(name="Yaş", value=f"{yas}", inline=True)
             
             embed.set_footer(text=f"Kullanıcı ID: {kullanici.id}")
             await log_kanali.send(embed=embed)
