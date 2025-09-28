@@ -48,16 +48,16 @@ async def on_member_join(member):
         except Exception as e:
             print(f"on_member_join hatası: {e}")
 
-# Slash komutunun tanımı
+# Slash komutunun tanımı (tek string parametre)
 @bot.tree.command(
-    name="kayıt", 
-    description="Sunucuya kayıt olmak için /kayıt OyunNicki girin.", 
+    name="kayıt",
+    description="Sunucumuza kayıt olmak için /kayıt yazdıktan sonra OyuniçiNick-İsim-Yaş şeklinde yazıp, işlemi tamamlayın.",
     guild=discord.Object(id=SUNUCU_ID)
 )
 @app_commands.describe(
-    oyun_nicki="Oyun içindeki isminiz (Bu isim sunucu takma adınız olacak)"
+    bilgiler="Kayıt bilgilerinizi OyuniçiNick-İsim-Yaş şeklinde yazın."
 )
-async def kayit(interaction: discord.Interaction, oyun_nicki: str):
+async def kayit(interaction: discord.Interaction, bilgiler: str):
     if interaction.channel.id != KAYIT_KANAL_ID:
         await interaction.response.send_message(
             f"Bu komutu sadece <#{KAYIT_KANAL_ID}> kanalında kullanabilirsin.", 
@@ -66,7 +66,17 @@ async def kayit(interaction: discord.Interaction, oyun_nicki: str):
         return
     
     await interaction.response.defer(ephemeral=True)
-    
+
+    # Bilgileri tire ile ayır
+    try:
+        oyun_nicki, isim, yas = bilgiler.split("-")
+        yas = int(yas)  # yaş integer olarak kullanılacak
+    except ValueError:
+        await interaction.followup.send(
+            "Bilgiler hatalı! Lütfen `/kayıt Nick-İsim-Yaş` şeklinde yazın."
+        )
+        return
+
     kullanici = interaction.user
     guild = interaction.guild
     log_kanali = bot.get_channel(LOG_KANAL_ID)
@@ -81,14 +91,16 @@ async def kayit(interaction: discord.Interaction, oyun_nicki: str):
         if log_kanali:
             embed = discord.Embed(title="✅ Yeni Kayıt Başarılı", color=discord.Color.green())
             embed.set_author(
-                name=f"{kullanici.name}", 
+                name=f"{kullanici.name}",
                 icon_url=kullanici.avatar.url if kullanici.avatar else discord.Embed.Empty
             )
             embed.add_field(name="Kayıt Olan Kişi", value=kullanici.mention, inline=False)
-            embed.add_field(name="Oyun Nicki", value=f"{oyun_nicki}", inline=True)
+            embed.add_field(name="Oyun Nicki", value=oyun_nicki, inline=True)
+            embed.add_field(name="İsim", value=isim, inline=True)
+            embed.add_field(name="Yaş", value=yas, inline=True)
             embed.set_footer(text=f"Kullanıcı ID: {kullanici.id}")
             await log_kanali.send(embed=embed)
-        
+
         await interaction.followup.send(f"Harika, kaydın başarıyla tamamlandı. Sunucumuza hoş geldin!")
 
     except Exception as e:
