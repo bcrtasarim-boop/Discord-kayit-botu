@@ -2,29 +2,13 @@ import os
 import discord
 from discord.ext import commands
 import asyncio
-from flask import Flask
 
-# --- AYARLAR - Sunucu ve Rol ID'lerini kendi sunucuna göre değiştir ---
+# --- AYARLAR ---
 SUNUCU_ID = 1421457543162757122
 MISAFIR_ROL_ID = 1421467222357966909
 UYE_ROL_ID = 1421467746855682219
 KAYIT_KANAL_ID = 1421469878937845780
 LOG_KANAL_ID = 1421548807451054190
-# ----------------------------------------------------------------------
-
-# --- Flask web server (Render healthcheck için) ---
-app = Flask(__name__)
-
-@app.route("/")
-def index():
-    return "OK"
-
-async def start_webserver():
-    import uvicorn
-    port = int(os.environ.get("PORT", 8080))
-    config = uvicorn.Config(app, host="0.0.0.0", port=port)
-    server = uvicorn.Server(config)
-    await server.serve()
 
 # --- Discord bot ayarları ---
 intents = discord.Intents.default()
@@ -40,10 +24,7 @@ async def on_ready():
         await bot.tree.sync(guild=discord.Object(id=SUNUCU_ID))
         print("Slash komutları başarıyla senkronize edildi.")
     except Exception as e:
-        print(f"Komut senkronizasyonu sırasında bir hata oluştu: {e}")
-
-    # Web server'ı başlat
-    asyncio.create_task(start_webserver())
+        print(f"Komut senkronizasyonu hatası: {e}")
 
 # --- Slash komut: kayıt ---
 @bot.tree.command(name="kayıt", description="Sunucuya kayıt olmak için kayıt sürecini başlatır.")
