@@ -3,12 +3,13 @@ import discord
 from discord.ext import commands
 import asyncio
 
-# --- AYARLAR ---
+# --- Sunucu ve Rol ID'lerini kendi sunucuna göre değiştir ---
 SUNUCU_ID = 1421457543162757122
 MISAFIR_ROL_ID = 1421467222357966909
 UYE_ROL_ID = 1421467746855682219
 KAYIT_KANAL_ID = 1421469878937845780
 LOG_KANAL_ID = 1421548807451054190
+# ----------------------------------------------------------------------
 
 # --- Discord bot ayarları ---
 intents = discord.Intents.default()
@@ -17,6 +18,7 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# --- Bot hazır olduğunda çalışacak ---
 @bot.event
 async def on_ready():
     print(f"Bot hazır: {bot.user} (id: {bot.user.id})")
@@ -26,7 +28,7 @@ async def on_ready():
     except Exception as e:
         print(f"Komut senkronizasyonu hatası: {e}")
 
-# --- Slash komut: kayıt ---
+# --- Kayıt Slash komutu ---
 @bot.tree.command(name="kayıt", description="Sunucuya kayıt olmak için kayıt sürecini başlatır.")
 async def kayit(interaction: discord.Interaction):
     if interaction.channel_id != KAYIT_KANAL_ID:
@@ -40,8 +42,8 @@ async def kayit(interaction: discord.Interaction):
         "Kayıt işlemi DM üzerinden devam edecek. Lütfen DM'lerini kontrol et.",
         ephemeral=True
     )
-    user = interaction.user
 
+    user = interaction.user
     try:
         dm_channel = await user.create_dm()
         await dm_channel.send("Merhaba! Kayıt işlemine başlayalım. 5 dakika içinde tamamlanmazsa iptal olacaktır.")
@@ -69,11 +71,11 @@ async def kayit(interaction: discord.Interaction):
         yas = int(yas_str)
 
         await dm_channel.send("Tüm bilgiler alındı, sunucudaki ayarlarını yapıyorum...")
+
         guild = bot.get_guild(SUNUCU_ID)
-        if guild is None:
+        if not guild:
             await dm_channel.send("Sunucu bilgisine ulaşılamadı.")
             return
-
         member = guild.get_member(user.id)
         if not member:
             await dm_channel.send("Sunucuda seni bulamadım.")
@@ -95,14 +97,13 @@ async def kayit(interaction: discord.Interaction):
             await member.remove_roles(misafir_rolu, reason="Kayıt tamamlandı.")
             await member.edit(nick=yeni_takma_ad, reason="Kayıt tamamlandı.")
         except discord.Forbidden:
-            await dm_channel.send("Bot yetkisi yok. Rolleri/Yeni Nick yönetilemiyor.")
+            await dm_channel.send("Bot yetkisi yok. Rolleri/Nick yönetilemiyor.")
             return
         except Exception as e:
             await dm_channel.send("Roller veya takma ad güncellenirken hata oluştu.")
             print(f"Üye güncelleme hatası: {e}")
             return
 
-        # Log kanalı
         log_kanali = bot.get_channel(LOG_KANAL_ID)
         if log_kanali:
             embed = discord.Embed(title="✅ Yeni Kayıt Başarılı", color=discord.Color.green())
