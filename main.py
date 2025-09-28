@@ -110,5 +110,5 @@ async def kayit(interaction: discord.Interaction):
 keep_alive()
 
 # Botu çalıştır
-bot.run("BURAYA_BOT_TOKENINI_YAZ")
-```
+bot.run("MTQyMTUzOTU5MzgxNTA2NDc3Ng.G0oNtw.dZx4T9HYuTZbJUVgGC9gfNo-Puv-pkNjXjgGcE")
+
