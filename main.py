@@ -77,9 +77,12 @@ async def kayit(interaction: discord.Interaction, oyun_nicki: str, isim: str, ya
             embed = discord.Embed(title="✅ Yeni Kayıt Başarılı", color=discord.Color.green())
             embed.set_author(name=f"{kullanici.name}", icon_url=kullanici.avatar.url if kullanici.avatar else discord.Embed.Empty)
             embed.add_field(name="Kayıt Olan Kişi", value=kullanici.mention, inline=False)
-            embed.add_field(name="Oyun Nicki", value=oyun_nicki, inline=True)
-            embed.add_field(name="İsim", value=isim, inline=True)
-            embed.add_field(name="Yaş", value=yas, inline=True)
+            
+            # Değişkenlerin metin (string) olduğundan emin olmak için f-string kullanıyoruz.
+            embed.add_field(name="Oyun Nicki", value=f"{oyun_nicki}", inline=True)
+            embed.add_field(name="İsim", value=f"{isim}", inline=True)
+            embed.add_field(name="Yaş", value=f"{yas}", inline=True)
+            
             embed.set_footer(text=f"Kullanıcı ID: {kullanici.id}")
             await log_kanali.send(embed=embed)
         
