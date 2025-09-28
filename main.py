@@ -51,7 +51,7 @@ async def on_member_join(member):
 # Slash komutunun tanımı (tek string parametre)
 @bot.tree.command(
     name="kayıt",
-    description="Sunucumuza kayıt olmak için /kayıt yazdıktan sonra nick-isim-yas şeklinde yazıp, işlemi tamamlayın. Örnek; /kayıt Slaine-Utku-31",
+    description="Kayıt için /kayıt Nick-İsim-Yaş yazıp işlemi tamamlayın. Örnek: /kayıt Slaine-Utku-31",
     guild=discord.Object(id=SUNUCU_ID)
 )
 @app_commands.describe(
@@ -118,5 +118,6 @@ try:
     bot.run(token)
 except KeyError:
     print("HATA: DISCORD_TOKEN bulunamadı. Lütfen hosting platformunuzun Secrets/Environment Variables bölümüne eklediğinizden emin olun.")
+
 
 
