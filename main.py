@@ -3,7 +3,6 @@ from discord import app_commands
 from discord.ext import commands
 import os
 from keep_alive import keep_alive # Web sunucusunu başlatmak için
-import re  # regex için
 
 # --- AYARLAR BÖLÜMÜ ---
 SUNUCU_ID = 1421457543162757122
@@ -13,15 +12,18 @@ KAYIT_KANAL_ID = 1421469878937845780
 LOG_KANAL_ID = 1421548807451054190
 # --------------------
 
+# Botun çalışması için gerekli Discord ayarları
 intents = discord.Intents.default()
 intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# Bot çalıştığında terminalde bir mesaj gösterecek
 @bot.event
 async def on_ready():
     print(f'{bot.user} olarak Discord\'a başarıyla bağlandım.')
     print("Kayıt botu aktif ve komutları bekliyor...")
     try:
+        # Slash komutlarını belirtilen sunucuyla senkronize et
         synced = await bot.tree.sync(guild=discord.Object(id=SUNUCU_ID))
         if synced:
             print(f"{len(synced)} adet komut senkronize edildi: {synced[0].name}")
@@ -30,6 +32,7 @@ async def on_ready():
     except Exception as e:
         print(f"Komut senkronizasyon hatası: {e}")
 
+# Sunucuya yeni bir üye katıldığında çalışacak olay
 @bot.event
 async def on_member_join(member):
     if member.guild.id == SUNUCU_ID:
@@ -45,7 +48,7 @@ async def on_member_join(member):
         except Exception as e:
             print(f"on_member_join hatası: {e}")
 
-# Slash komutu: farklı ayırıcıları destekle
+# Slash komutunun tanımı (tek string parametre)
 @bot.tree.command(
     name="kayıt",
     description="Sunucumuza kayıt olmak için /kayıt yazdıktan sonra OyuniçiNick-İsim-Yaş şeklinde yazıp, işlemi tamamlayın.",
@@ -61,24 +64,17 @@ async def kayit(interaction: discord.Interaction, bilgiler: str):
             ephemeral=True
         )
         return
-
+    
     await interaction.response.defer(ephemeral=True)
 
-    # Regex ile ayırıcıları: -, boşluk, _, . kabul et
-    parts = [part.strip() for part in re.split(r"[- _\.]", bilgiler) if part.strip()]
-
-    if len(parts) < 3:
+    # Bilgileri tire ile ayır
+    try:
+        oyun_nicki, isim, yas = bilgiler.split("-")
+        yas = int(yas)  # yaş integer olarak kullanılacak
+    except ValueError:
         await interaction.followup.send(
             "Bilgiler hatalı! Lütfen `/kayıt Nick-İsim-Yaş` şeklinde yazın."
         )
-        return
-
-    oyun_nicki, isim, yas_str = parts[:3]
-
-    try:
-        yas = int(yas_str)
-    except ValueError:
-        await interaction.followup.send("Yaş kısmı sayısal olmalı! Lütfen tekrar deneyin.")
         return
 
     kullanici = interaction.user
@@ -111,10 +107,10 @@ async def kayit(interaction: discord.Interaction, bilgiler: str):
         print(f"Kayıt komutu sırasında bir hata oluştu: {e}")
         await interaction.followup.send("Kayıt sırasında bir hata oluştu. Lütfen bir yetkili ile iletişime geç.")
 
-# Web sunucusunu çalıştır
+# Web sunucusunu (keep_alive) çalıştır
 keep_alive()
 
-# Token
+# Token'ı ortam değişkenlerinden (Secrets) güvenli bir şekilde al
 try:
     token = os.environ['DISCORD_TOKEN']
     bot.run(token)
