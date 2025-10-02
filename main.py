@@ -42,7 +42,8 @@ async def on_member_join(member):
                 await member.add_roles(misafir_rolu)
             if kayit_kanali:
                 await kayit_kanali.send(
-                    f"Hoş geldin {member.mention}! Lütfen sunucumuza tam erişim için `/kayıt` komutunu kullanarak kayıt ol."
+                    f"Sunucumuza hoş geldiniz {member.mention}! Kayıt olmadan sunucunun kanallarını göremezsiniz. Kayıt olmak için `/kayıt` yazarak ilgili adımları takip etmeniz yeterlidir.\nÖrnek: `/kayıt Slaine - Utku - 31`\nKayıt'ın ardından ilk olarak topluluğumuzun kurallarını okumayı ihmal etmeyin."
+
                 )
         except Exception as e:
             print(f"on_member_join hatası: {e}")
@@ -118,3 +119,4 @@ try:
     bot.run(token)
 except KeyError:
     print("HATA: DISCORD_TOKEN bulunamadı. Lütfen ortam değişkenlerini kontrol edin.")
+
