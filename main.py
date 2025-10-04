@@ -21,13 +21,10 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 @bot.event
 async def on_ready():
     print(f'{bot.user} olarak Discord\'a başarıyla bağlandım.')
-    print("Kayıt botu aktif ve komutları bekliyor...")
+    print("Bot aktif ve komutları bekliyor...")
     try:
         synced = await bot.tree.sync(guild=discord.Object(id=SUNUCU_ID))
-        if synced:
-            print(f"{len(synced)} adet komut senkronize edildi: {synced[0].name}")
-        else:
-            print("Sunucuya özel komut bulunamadı veya senkronize edilemedi.")
+        print(f"{len(synced)} adet komut senkronize edildi.")
     except Exception as e:
         print(f"Komut senkronizasyon hatası: {e}")
 
@@ -43,12 +40,11 @@ async def on_member_join(member):
             if kayit_kanali:
                 await kayit_kanali.send(
                     f"Sunucumuza hoş geldiniz {member.mention}! \nKayıt olmadan sunucunun kanallarını göremezsiniz.\nKayıt olmak için `/kayıt` yazarak ilgili adımları takip etmeniz yeterlidir.\nÖrnek: `/kayıt Slaine - Utku - 31`\nKayıt'ın ardından ilk olarak topluluğumuzun kurallarını okumayı ihmal etmeyin."
-
                 )
         except Exception as e:
             print(f"on_member_join hatası: {e}")
 
-# Slash komutu
+# /kayıt slash komutu
 @bot.tree.command(
     name="kayıt",
     description="Kayıt için /kayıt Nick-İsim-Yaş yazıp işlemi tamamlayın. Örnek: /kayıt Slaine-Utku-31",
@@ -67,7 +63,6 @@ async def kayit(interaction: discord.Interaction, nick_isim_yas: str):
 
     await interaction.response.defer(ephemeral=True)
 
-    # Bilgileri parçala (log için)
     try:
         oyun_nicki, isim, yas = nick_isim_yas.split("-")
         yas = int(yas)
@@ -84,13 +79,10 @@ async def kayit(interaction: discord.Interaction, nick_isim_yas: str):
     uye_rolu = guild.get_role(UYE_ROL_ID)
 
     try:
-        # Misafir rolünü kaldır, üye rolü ekle
         await kullanici.remove_roles(misafir_rolu)
         await kullanici.add_roles(uye_rolu)
-        # Nickname olarak tüm parametreyi kullan
         await kullanici.edit(nick=nick_isim_yas)
 
-        # Embed log gönderimi
         if log_kanali:
             avatar_url = kullanici.avatar.url if kullanici.avatar else None
             embed = discord.Embed(title="✅ Yeni Kayıt Başarılı", color=discord.Color.green())
@@ -110,6 +102,45 @@ async def kayit(interaction: discord.Interaction, nick_isim_yas: str):
     except Exception as e:
         print(f"Kayıt işlemi sırasında hata: {e}")
 
+# --- YENİ EKLENEN MESAJ SİLME KOMUTU ---
+
+@bot.tree.command(
+    name="sil",
+    description="Kanaldaki belirtilen sayıda mesajı siler (En fazla 100).",
+    guild=discord.Object(id=SUNUCU_ID)
+)
+@app_commands.describe(
+    miktar="Silinecek mesaj sayısı (1-100 arası)."
+)
+@app_commands.checks.has_permissions(manage_messages=True)
+async def sil(interaction: discord.Interaction, miktar: app_commands.Range[int, 1, 100]):
+    """
+    Belirtilen sayıda mesajı siler.
+    """
+    await interaction.response.defer(ephemeral=True, thinking=True)
+    
+    try:
+        silinen_mesajlar = await interaction.channel.purge(limit=miktar)
+        await interaction.followup.send(f"✅ Bu kanaldan başarıyla **{len(silinen_mesajlar)}** adet mesaj silindi.")
+        
+    except discord.Forbidden:
+        await interaction.followup.send("❌ Botun bu kanalda 'Mesajları Yönet' izni bulunmuyor.")
+    except Exception as e:
+        await interaction.followup.send(f"Bir hata oluştu: {e}")
+
+@sil.error
+async def sil_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    if isinstance(error, app_commands.MissingPermissions):
+        await interaction.response.send_message(
+            "Bu komutu kullanmak için 'Mesajları Yönet' yetkisine sahip olmalısın.", 
+            ephemeral=True
+        )
+    else:
+        await interaction.response.send_message(
+            f"Beklenmedik bir hata oluştu: {error}", 
+            ephemeral=True
+        )
+
 # Web sunucusunu çalıştır
 keep_alive()
 
@@ -119,5 +150,3 @@ try:
     bot.run(token)
 except KeyError:
     print("HATA: DISCORD_TOKEN bulunamadı. Lütfen ortam değişkenlerini kontrol edin.")
-
-
