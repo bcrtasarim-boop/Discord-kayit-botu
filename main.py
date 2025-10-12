@@ -3,6 +3,7 @@ from discord import app_commands
 from discord.ext import commands
 import os
 from keep_alive import keep_alive  # Web sunucusunu başlatmak için
+from threading import Thread       # <<< YENİ EKLENDİ
 
 # --- AYARLAR BÖLÜMÜ ---
 SUNUCU_ID = 1421457543162757122
@@ -141,12 +142,19 @@ async def sil_error(interaction: discord.Interaction, error: app_commands.AppCom
             ephemeral=True
         )
 
-# Web sunucusunu çalıştır
-keep_alive()
+# <<< BURADAN AŞAĞISI DEĞİŞTİ >>>
 
-# Token'ı güvenli şekilde al
-try:
-    token = os.environ['DISCORD_TOKEN']
-    bot.run(token)
-except KeyError:
-    print("HATA: DISCORD_TOKEN bulunamadı. Lütfen ortam değişkenlerini kontrol edin.")
+if __name__ == "__main__":
+    # Web sunucusunu ayrı bir iş parçacığında başlatıyoruz
+    # Bu, botun çalışmasını engellemeyecek
+    server_thread = Thread(target=keep_alive)
+    server_thread.start()
+    
+    # Ana programda Discord botunu başlatıyoruz
+    try:
+        token = os.environ['DISCORD_TOKEN']
+        bot.run(token)
+    except KeyError:
+        print("HATA: DISCORD_TOKEN bulunamadı. Lütfen .env dosyasını kontrol edin.")
+    except discord.errors.LoginFailure:
+        print("HATA: Token geçersiz. Lütfen .env dosyasındaki TOKEN'ı kontrol edin.")
