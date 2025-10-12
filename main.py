@@ -3,7 +3,11 @@ from discord import app_commands
 from discord.ext import commands
 import os
 from keep_alive import keep_alive  # Web sunucusunu başlatmak için
-from threading import Thread       # <<< YENİ EKLENDİ
+from threading import Thread       # <<< YENİ: Eşzamanlı çalışma için
+from dotenv import load_dotenv     # <<< YENİ: .env dosyasını okumak için
+
+# --- .env dosyasındaki değişkenleri yükle ---
+load_dotenv() # <<< YENİ
 
 # --- AYARLAR BÖLÜMÜ ---
 SUNUCU_ID = 1421457543162757122
@@ -65,11 +69,11 @@ async def kayit(interaction: discord.Interaction, nick_isim_yas: str):
     await interaction.response.defer(ephemeral=True)
 
     try:
-        oyun_nicki, isim, yas = nick_isim_yas.split("-")
-        yas = int(yas)
+        oyun_nicki, isim, yas_str = [x.strip() for x in nick_isim_yas.split("-")]
+        yas = int(yas_str)
     except ValueError:
         await interaction.followup.send(
-            "Bilgiler hatalı! Lütfen `/kayıt Nick-İsim-Yaş` şeklinde yazın."
+            "Bilgiler hatalı! Lütfen `/kayıt Nick-İsim-Yaş` şeklinde ve aralarda boşluk bırakmadan yazın."
         )
         return
 
@@ -80,9 +84,10 @@ async def kayit(interaction: discord.Interaction, nick_isim_yas: str):
     uye_rolu = guild.get_role(UYE_ROL_ID)
 
     try:
-        await kullanici.remove_roles(misafir_rolu)
+        if misafir_rolu in kullanici.roles:
+            await kullanici.remove_roles(misafir_rolu)
         await kullanici.add_roles(uye_rolu)
-        await kullanici.edit(nick=nick_isim_yas)
+        await kullanici.edit(nick=f"{oyun_nicki} - {isim}")
 
         if log_kanali:
             avatar_url = kullanici.avatar.url if kullanici.avatar else None
@@ -93,18 +98,15 @@ async def kayit(interaction: discord.Interaction, nick_isim_yas: str):
             embed.add_field(name="İsim", value=isim, inline=True)
             embed.add_field(name="Yaş", value=yas, inline=True)
             embed.set_footer(text=f"Kullanıcı ID: {kullanici.id}")
-            try:
-                await log_kanali.send(embed=embed)
-            except Exception as e:
-                print(f"Log gönderilemedi: {e}")
+            await log_kanali.send(embed=embed)
 
         await interaction.followup.send(f"Harika, kaydın başarıyla tamamlandı. Sunucumuza hoş geldin!")
 
     except Exception as e:
         print(f"Kayıt işlemi sırasında hata: {e}")
+        await interaction.followup.send(f"Kayıt sırasında bir hata oluştu. Lütfen yetkililere bildirin.")
 
-# --- YENİ EKLENEN MESAJ SİLME KOMUTU ---
-
+# /sil slash komutu
 @bot.tree.command(
     name="sil",
     description="Kanaldaki belirtilen sayıda mesajı siler (En fazla 100).",
@@ -115,9 +117,6 @@ async def kayit(interaction: discord.Interaction, nick_isim_yas: str):
 )
 @app_commands.checks.has_permissions(manage_messages=True)
 async def sil(interaction: discord.Interaction, miktar: app_commands.Range[int, 1, 100]):
-    """
-    Belirtilen sayıda mesajı siler.
-    """
     await interaction.response.defer(ephemeral=True, thinking=True)
     
     try:
@@ -142,19 +141,23 @@ async def sil_error(interaction: discord.Interaction, error: app_commands.AppCom
             ephemeral=True
         )
 
-# <<< BURADAN AŞAĞISI DEĞİŞTİ >>>
+# <<< BURADAN AŞAĞISI TAMAMEN YENİLENDİ >>>
 
 if __name__ == "__main__":
-    # Web sunucusunu ayrı bir iş parçacığında başlatıyoruz
-    # Bu, botun çalışmasını engellemeyecek
+    # Web sunucusunu ayrı bir iş parçacığında (thread) başlatıyoruz.
+    # Bu, aşağıdaki bot.run() komutunun çalışmasını engellemeyecek.
     server_thread = Thread(target=keep_alive)
     server_thread.start()
     
-    # Ana programda Discord botunu başlatıyoruz
+    # Ana programda Discord botunu başlatıyoruz.
     try:
-        token = os.environ['DISCORD_TOKEN']
-        bot.run(token)
-    except KeyError:
-        print("HATA: DISCORD_TOKEN bulunamadı. Lütfen .env dosyasını kontrol edin.")
+        # .env dosyasından token'ı güvenli bir şekilde alıyoruz.
+        token = os.environ.get('DISCORD_TOKEN')
+        if token is None:
+            print("HATA: DISCORD_TOKEN bulunamadı! Lütfen .env dosyasını ve içeriğini kontrol edin.")
+        else:
+            bot.run(token)
     except discord.errors.LoginFailure:
-        print("HATA: Token geçersiz. Lütfen .env dosyasındaki TOKEN'ı kontrol edin.")
+        print("HATA: Token geçersiz! Lütfen Discord Geliştirici Portalı'ndan yeni bir token alın ve .env dosyasına yapıştırın.")
+    except Exception as e:
+        print(f"Bot başlatılırken beklenmedik bir hata oluştu: {e}")
